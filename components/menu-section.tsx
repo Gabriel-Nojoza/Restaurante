@@ -148,7 +148,7 @@ const pizzas = [
     id: "pizza-1",
     name: "Pizza Margherita",
     description: "Molho de tomate, mussarela, tomate fatiado e manjericão fresco",
-    price: 25.9,
+    price: 45.9,
     image: "/margherita-pizza-with-fresh-basil.jpg",
   },
   {
