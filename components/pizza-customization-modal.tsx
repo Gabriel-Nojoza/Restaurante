@@ -35,18 +35,40 @@ const EXTRAS = [
   { id: "onion", name: "Cebola Caramelizada", price: 5 },
 ]
 
-export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: PizzaCustomizationModalProps) {
+// 🔹 NOVO: tamanhos da pizza
+const PIZZA_SIZES = [
+  { id: "small", name: "Pequena", description: "4 fatias", extraPrice: 0 },
+  { id: "medium", name: "Média", description: "6 fatias", extraPrice: 5 },
+  { id: "large", name: "Grande", description: "8 fatias", extraPrice: 10 },
+] as const
+
+type PizzaSize = (typeof PIZZA_SIZES)[number]
+
+export function PizzaCustomizationModal({
+  pizza,
+  allPizzas,
+  isOpen,
+  onClose,
+}: PizzaCustomizationModalProps) {
   const { addItem } = useCart()
   const [isHalfAndHalf, setIsHalfAndHalf] = useState(false)
   const [secondHalfPizza, setSecondHalfPizza] = useState<Pizza | null>(null)
-  const [selectedCrust, setSelectedCrust] = useState<(typeof STUFFED_CRUSTS)[0] | null>(null)
+  const [selectedCrust, setSelectedCrust] =
+    useState<(typeof STUFFED_CRUSTS)[0] | null>(null)
   const [selectedExtras, setSelectedExtras] = useState<typeof EXTRAS>([])
+  // 🔹 NOVO: tamanho selecionado (padrão: média)
+  const [selectedSize, setSelectedSize] = useState<PizzaSize>(PIZZA_SIZES[1])
 
   const totalPrice = useMemo(() => {
     let price = pizza.price
 
     if (isHalfAndHalf && secondHalfPizza) {
       price = Math.max(pizza.price, secondHalfPizza.price)
+    }
+
+    // 🔹 aplica adicional do tamanho
+    if (selectedSize) {
+      price += selectedSize.extraPrice
     }
 
     if (selectedCrust) {
@@ -58,7 +80,14 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
     })
 
     return price
-  }, [pizza.price, isHalfAndHalf, secondHalfPizza, selectedCrust, selectedExtras])
+  }, [
+    pizza.price,
+    isHalfAndHalf,
+    secondHalfPizza,
+    selectedCrust,
+    selectedExtras,
+    selectedSize,
+  ])
 
   const toggleExtra = (extra: (typeof EXTRAS)[0]) => {
     setSelectedExtras((prev) => {
@@ -71,7 +100,15 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
   }
 
   const handleAddToCart = () => {
-    const pizzaName = isHalfAndHalf && secondHalfPizza ? `${pizza.name} / ${secondHalfPizza.name}` : pizza.name
+    const sizeLabel = selectedSize?.name ?? ""
+
+    const baseName =
+      isHalfAndHalf && secondHalfPizza
+        ? `${pizza.name} / ${secondHalfPizza.name}`
+        : pizza.name
+
+    // 🔹 nome da pizza inclui o tamanho
+    const pizzaName = sizeLabel ? `${baseName} (${sizeLabel})` : baseName
 
     addItem({
       id: pizza.id,
@@ -107,6 +144,7 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
     setSecondHalfPizza(null)
     setSelectedCrust(null)
     setSelectedExtras([])
+    setSelectedSize(PIZZA_SIZES[1]) // volta pra média
     onClose()
   }
 
@@ -114,11 +152,19 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="relative bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="relative h-48 w-full flex-shrink-0">
-          <Image src={pizza.image || "/placeholder.svg"} alt={pizza.name} fill className="object-cover" />
+          <Image
+            src={pizza.image || "/placeholder.svg"}
+            alt={pizza.name}
+            fill
+            className="object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <button
             onClick={onClose}
@@ -134,10 +180,51 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* 🔹 Tamanho */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-card-foreground">
+              Tamanho
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {PIZZA_SIZES.map((size) => {
+                const isSelected = selectedSize.id === size.id
+                return (
+                  <button
+                    key={size.id}
+                    type="button"
+                    onClick={() => setSelectedSize(size)}
+                    className={`flex flex-col items-start justify-between p-3 rounded-lg border-2 transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50 bg-card"
+                    }`}
+                  >
+                    <div>
+                      <span className="font-medium text-card-foreground">
+                        {size.name}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {size.description}
+                      </p>
+                    </div>
+                    {size.extraPrice > 0 && (
+                      <span className="mt-1 text-sm text-primary font-semibold">
+                        +R${" "}
+                        {size.extraPrice.toFixed(2).replace(".", ",")}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Meio a Meio */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-card-foreground">Meio a Meio</h3>
+              <h3 className="text-lg font-semibold text-card-foreground">
+                Meio a Meio
+              </h3>
               <button
                 onClick={() => {
                   setIsHalfAndHalf(!isHalfAndHalf)
@@ -178,24 +265,34 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
 
           {/* Borda Recheada */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-card-foreground">Borda Recheada</h3>
+            <h3 className="text-lg font-semibold text-card-foreground">
+              Borda Recheada
+            </h3>
             <div className="grid grid-cols-2 gap-2">
               {STUFFED_CRUSTS.map((crust) => (
                 <button
                   key={crust.id}
-                  onClick={() => setSelectedCrust(selectedCrust?.id === crust.id ? null : crust)}
+                  onClick={() =>
+                    setSelectedCrust(
+                      selectedCrust?.id === crust.id ? null : crust,
+                    )
+                  }
                   className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
                     selectedCrust?.id === crust.id
                       ? "border-primary bg-primary/10"
                       : "border-border hover:border-primary/50 bg-card"
                   }`}
                 >
-                  <span className="font-medium text-card-foreground">{crust.name}</span>
+                  <span className="font-medium text-card-foreground">
+                    {crust.name}
+                  </span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-primary font-semibold">
                       +R$ {crust.price.toFixed(2).replace(".", ",")}
                     </span>
-                    {selectedCrust?.id === crust.id && <Check className="h-4 w-4 text-primary" />}
+                    {selectedCrust?.id === crust.id && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
                   </div>
                 </button>
               ))}
@@ -204,24 +301,34 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
 
           {/* Adicionais */}
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-card-foreground">Adicionais</h3>
+            <h3 className="text-lg font-semibold text-card-foreground">
+              Adicionais
+            </h3>
             <div className="grid grid-cols-2 gap-2">
               {EXTRAS.map((extra) => {
-                const isSelected = selectedExtras.some((e) => e.id === extra.id)
+                const isSelected = selectedExtras.some(
+                  (e) => e.id === extra.id,
+                )
                 return (
                   <button
                     key={extra.id}
                     onClick={() => toggleExtra(extra)}
                     className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
-                      isSelected ? "border-primary bg-primary/10" : "border-border hover:border-primary/50 bg-card"
+                      isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:border-primary/50 bg-card"
                     }`}
                   >
-                    <span className="font-medium text-card-foreground">{extra.name}</span>
+                    <span className="font-medium text-card-foreground">
+                      {extra.name}
+                    </span>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-primary font-semibold">
                         +R$ {extra.price.toFixed(2).replace(".", ",")}
                       </span>
-                      {isSelected && <Check className="h-4 w-4 text-primary" />}
+                      {isSelected && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
                     </div>
                   </button>
                 )
@@ -234,7 +341,9 @@ export function PizzaCustomizationModal({ pizza, allPizzas, isOpen, onClose }: P
         <div className="flex-shrink-0 p-4 border-t border-border bg-muted/30">
           <div className="flex items-center justify-between mb-3">
             <span className="text-muted-foreground">Total:</span>
-            <span className="text-2xl font-bold text-primary">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
+            <span className="text-2xl font-bold text-primary">
+              R$ {totalPrice.toFixed(2).replace(".", ",")}
+            </span>
           </div>
           <Button
             onClick={handleAddToCart}
