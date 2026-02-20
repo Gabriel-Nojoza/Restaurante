@@ -37,9 +37,9 @@ const EXTRAS = [
 
 // 🔹 NOVO: tamanhos da pizza
 const PIZZA_SIZES = [
-  { id: "small", name: "Pequena", description: "4 fatias", extraPrice: 0 },
-  { id: "medium", name: "Média", description: "6 fatias", extraPrice: 5 },
-  { id: "large", name: "Grande", description: "8 fatias", extraPrice: 10 },
+  { id: "small", name: "Pequena", extraPrice: 25,90 },
+  { id: "medium", name: "Média", extraPrice: 30,90 },
+  { id: "large", name: "Grande", extraPrice: 35,90 },
 ] as const
 
 type PizzaSize = (typeof PIZZA_SIZES)[number]
