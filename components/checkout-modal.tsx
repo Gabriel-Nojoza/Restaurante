@@ -21,7 +21,7 @@ const WHATSAPP_NUMBER = "5585996703367"
 const DELIVERY_FEE = 7.9
 
 export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
-  const { items, total: cartTotal, clearCart } = useCart()
+  const { items, subtotal, clearCart } = useCart()
 
   const [formData, setFormData] = useState({
     name: "",
@@ -32,11 +32,9 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
     paymentMethod: "",
   })
 
-  // 🔹 Subtotal = total do carrinho
-  const subtotal = cartTotal
-
-  // 🔹 Taxa de entrega só se for delivery
-  const deliveryFee = formData.deliveryType === "delivery" && items.length > 0 ? DELIVERY_FEE : 0
+  // 🔹 Taxa de entrega só se for delivery e tiver item no carrinho
+  const deliveryFee =
+    formData.deliveryType === "delivery" && items.length > 0 ? DELIVERY_FEE : 0
 
   // 🔹 Total final = subtotal + taxa
   const finalTotal = subtotal + deliveryFee
