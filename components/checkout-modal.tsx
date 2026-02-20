@@ -17,8 +17,12 @@ interface CheckoutModalProps {
 
 const WHATSAPP_NUMBER = "5585996703367"
 
+// 🔹 Valor fixo da taxa de entrega
+const DELIVERY_FEE = 7.9
+
 export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
-  const { items, total, clearCart } = useCart()
+  const { items, total: cartTotal, clearCart } = useCart()
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -27,6 +31,15 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
     complement: "",
     paymentMethod: "",
   })
+
+  // 🔹 Subtotal = total do carrinho
+  const subtotal = cartTotal
+
+  // 🔹 Taxa de entrega só se for delivery
+  const deliveryFee = formData.deliveryType === "delivery" && items.length > 0 ? DELIVERY_FEE : 0
+
+  // 🔹 Total final = subtotal + taxa
+  const finalTotal = subtotal + deliveryFee
 
   const handleSubmit = () => {
     if (!formData.name || !formData.phone || !formData.deliveryType || !formData.paymentMethod) {
@@ -50,8 +63,15 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
 
     const deliveryInfo =
       formData.deliveryType === "delivery"
-        ? `\n\n📍 *Endereço de entrega:*\n${formData.address}${formData.complement ? `\nComplemento: ${formData.complement}` : ""}`
+        ? `\n\n📍 *Endereço de entrega:*\n${formData.address}${
+            formData.complement ? `\nComplemento: ${formData.complement}` : ""
+          }`
         : "\n\n🏪 *Retirada no local*"
+
+    const deliveryText =
+      formData.deliveryType === "delivery"
+        ? `\n🚚 *Taxa de entrega:* R$ ${deliveryFee.toFixed(2).replace(".", ",")}`
+        : ""
 
     const message =
       `🍽️ *NOVO PEDIDO - Restaurante Sabor & Arte*\n\n` +
@@ -60,7 +80,9 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
       `💳 *Pagamento:* ${formData.paymentMethod}\n` +
       deliveryInfo +
       `\n\n📋 *Itens do Pedido:*\n${orderItems}\n\n` +
-      `💰 *TOTAL: R$ ${total.toFixed(2).replace(".", ",")}*\n\n` +
+      `💰 *Subtotal:* R$ ${subtotal.toFixed(2).replace(".", ",")}` +
+      deliveryText +
+      `\n💰 *TOTAL: R$ ${finalTotal.toFixed(2).replace(".", ",")}*\n\n` +
       `Aguardo confirmação! 🙏`
 
     const encodedMessage = encodeURIComponent(message)
@@ -83,7 +105,9 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-card-foreground">Finalizar Pedido</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-card-foreground">
+            Finalizar Pedido
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -180,6 +204,7 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
             </Select>
           </div>
 
+          {/* Resumo do pedido */}
           <div className="bg-secondary rounded-lg p-4 space-y-2">
             <h4 className="font-semibold text-secondary-foreground">Resumo do Pedido</h4>
             <div className="space-y-1 text-sm text-secondary-foreground">
@@ -188,17 +213,42 @@ export function CheckoutModal({ open, onOpenChange }: CheckoutModalProps) {
                   <span>
                     {item.quantity}x {item.name}
                   </span>
-                  <span>R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</span>
+                  <span>
+                    R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
+                  </span>
                 </div>
               ))}
             </div>
-            <div className="border-t border-border pt-2 flex justify-between font-bold text-lg">
-              <span className="text-secondary-foreground">Total:</span>
-              <span className="text-primary">R$ {total.toFixed(2).replace(".", ",")}</span>
+
+            {/* Subtotal / Taxa / Total */}
+            <div className="mt-2 space-y-1 text-sm text-secondary-foreground">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Taxa de entrega</span>
+                <span>
+                  {deliveryFee > 0
+                    ? `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`
+                    : "R$ 0,00"}
+                </span>
+              </div>
+
+              <div className="border-t border-border pt-2 flex justify-between font-bold text-lg">
+                <span className="text-secondary-foreground">Total:</span>
+                <span className="text-primary">
+                  R$ {finalTotal.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
             </div>
           </div>
 
-          <Button onClick={handleSubmit} className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 text-white">
+          <Button
+            onClick={handleSubmit}
+            className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 text-white"
+          >
             <Send className="h-5 w-5 mr-2" />
             Enviar Pedido via WhatsApp
           </Button>
