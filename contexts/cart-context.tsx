@@ -34,7 +34,8 @@ interface CartContextType {
   updateQuantity: (id: string, quantity: number) => void
   updateObservation: (id: string, observation: string) => void
   clearCart: () => void
-  total: number
+  subtotal: number   // soma dos itens, sem taxa
+  total: number      // por enquanto igual ao subtotal (taxa é calculada no checkout)
   itemCount: number
 }
 
@@ -54,8 +55,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       const existingItem = prev.find((item) => item.id === newItem.id)
       if (existingItem) {
-        return prev.map((item) => (item.id === newItem.id ? { ...item, quantity: item.quantity + 1 } : item))
+        return prev.map((item) =>
+          item.id === newItem.id ? { ...item, quantity: item.quantity + 1 } : item,
+        )
       }
+
       return [...prev, { ...newItem, quantity: 1 }]
     })
   }
@@ -69,16 +73,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem(id)
       return
     }
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, quantity } : item)))
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity } : item)),
+    )
   }
 
   const updateObservation = (id: string, observation: string) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, observation } : item)))
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, observation } : item)),
+    )
   }
 
   const clearCart = () => setItems([])
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // 🔹 Soma de todos os itens do carrinho
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  )
+
+  // 🔹 Total geral (se quiser mover taxa pra cá no futuro, é aqui)
+  const total = subtotal
+
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
@@ -90,6 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         updateObservation,
         clearCart,
+        subtotal,
         total,
         itemCount,
       }}
